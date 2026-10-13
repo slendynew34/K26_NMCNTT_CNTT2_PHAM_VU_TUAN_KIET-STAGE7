@@ -1,0 +1,32 @@
+Phần 1: Phân tích & Đề xuất đa giải pháp
+Xác định Input & Output
+• Input:
+- Thư mục nguồn cần quét: /var/logs/ (và các thư mục con cấp sâu hơn).
+- Từ khóa cần tìm kiếm: TIMEOUT.
+• Output:
+- Danh sách kết quả hiển thị rõ đường dẫn tệp tin, số dòng chứa lỗi và nội dung dòng log khớp với từ khóa.
+Đề xuất các giải pháp
+   1 Giải pháp 1: Sử dụng công cụ truyền thống findstr (CMD/PowerShell)
+• Tận dụng lệnh tìm kiếm chuỗi tích hợp sẵn trong Windows để quét đệ quy qua các thư mục log.
+   2 Giải pháp 2: Sử dụng tổ hợp cmdlet PowerShell (Get-ChildItem + Select-String)
+• Sử dụng các lệnh hiện đại của PowerShell để lấy danh sách file, duyệt đệ quy và lọc nội dung với cơ chế kiểm soát lỗi chặt chẽ.
+Phần 2: So sánh & Lựa chọn
+Tiêu chí               Giải pháp 1 (findstr)                                                           Giải pháp 2 (Get-ChildItem + Select-String)
+Tốc độ xử lý           Rất nhanh (thực thi ở tầng native của hệ điều hành).                            Nhanh, tối ưu tốt cho môi trường PowerShell.
+Xử lý file bị khóa     Kém (dễ văng lỗi dừng tiến trình nếu gặp file đang bị tiến trình khác ghi).     Tốt (có thể kết hợp block xử lý lỗi để bỏ qua file bị khóa an toàn).
+Cross-platform         Không (chỉ chạy được trên nền tảng Windows).                                    Có (PowerShell Core hỗ trợ đa nền tảng).
+Độ phức tạp code       Đơn giản, gọn nhẹ.                                                              Trung bình, cú pháp rõ ràng, dễ mở rộng logic.
+Hiển thị số dòng       Có hỗ trợ hiển thị số dòng tương đối.                                           Có hỗ trợ hiển thị số dòng (Line) và tên file chính xác (Path).
+Phần 3: Triển khai
+Lựa chọn giải pháp
+Giải pháp được chọn là Giải pháp 2 (Get-ChildItem kết hợp Select-String).
+• Lý do chọn: Môi trường vận hành là Windows Server / PowerShell, giải pháp này hoàn toàn đồng nhất với công nghệ của hệ thống, cung cấp khả năng truy xuất chi tiết (tên file, số dòng) và dễ dàng bọc trong cơ chế bắt lỗi (try-catch) để giải quyết triệt để bẫy dữ liệu khi gặp các tệp log đang bị tiến trình khác khóa (locked).
+Câu lệnh PowerShell hoàn chỉnh
+Get-ChildItem -Path "/var/logs/" -Recurse -File | ForEach-Object {
+    try {
+        Select-String -Path $_.FullName -Pattern "TIMEOUT" -ErrorAction Stop
+    } catch {
+        Write-Warning "Bo qua file dang bi khoa hoac loi truy cap: $($_.FullName)"
+    }
+} | Select-Object Path, LineNumber, Line
+• Cách xác nhận thành công: Terminal hiển thị danh sách các dòng log chứa từ khóa TIMEOUT kèm theo đường dẫn tệp (Path) và số thứ tự dòng (LineNumber), đồng thời không bị dừng giữa chừng khi gặp tệp log đang bị khóa.

@@ -1,0 +1,20 @@
+Phần 1: Phân tích lỗi
+• Các dòng lệnh gây ra lỗi: Cả 3 dòng trong script đều sử dụng toán tử Out-File weekly_errors.txt mà không có tham số bổ sung.
+• Nguyên nhân kỹ thuật: Mặc định trong PowerShell, lệnh Out-File thực hiện thao tác ghi đè (overwrite) nội dung cũ bằng nội dung mới vào tệp, thay vì tự động cộng dồn. Do đó, mỗi lần script chạy theo giờ:
+   1 Dòng 1 ghi đè thời gian bắt đầu vào tệp (xóa sạch toàn bộ lịch sử trước đó).
+   2 Dòng 2 ghi đè tiếp danh sách lỗi mới vào tệp (xóa nốt dòng thời gian vừa ghi).
+   3 Dòng 3 ghi đè kết quả thời gian kết thúc.
+• Hậu quả còn sót lại: Sau mỗi lần script chạy hoàn tất, file weekly_errors.txt chỉ còn sót lại đúng một dòng thời gian kết thúc của giờ chạy gần nhất, toàn bộ các giờ trước đó đã bị xóa trắng.
+Phần 2: Sửa lỗi và kiểm thử
+1. Phiên bản script đã sửa đúng quy trình cộng dồn
+Sử dụng tham số -Append cho Out-File để giữ lại lịch sử cũ và nối tiếp dữ liệu mới vào cuối tệp:
+# Script: hourly_log.ps1 (Đã sửa lỗi cộng dồn)
+"[$(Get-Date)] --- Bat dau quet ---" | Out-File weekly_errors.txt -Append
+Select-String -Path app.log -Pattern "error" | Out-File weekly_errors.txt -Append
+"[$(Get-Date)] --- Ket thuc quet ---" | Out-File weekly_errors.txt -Append
+• Cách xác nhận thành công: Kiểm tra nội dung tệp weekly_errors.txt sau nhiều lần chạy thử và thấy các mốc thời gian cùng danh sách lỗi của các giờ trước vẫn được lưu giữ nguyên vẹn, không bị mất đi.
+2. So sánh Out-File và các phương thức ghi tệp trong PowerShell
+Đặc điểm                    Out-File (Mặc định)                          Out-File -Append                             Add-Content
+Cơ chế hoạt động            Ghi đè toàn bộ nội dung cũ của tệp.          Ghi nối dữ liệu mới vào cuối tệp.            Ghi nối dữ liệu mới vào cuối tệp (chuyên dụng cho văn bản).
+Hành vi với tệp chưa có     Tự động tạo mới tệp.                         Tự động tạo mới tệp.                         Tự động tạo mới tệp.                
+Trường hợp sử dụng          Tạo báo cáo mới hoàn toàn mỗi lần chạy.      Cộng dồn log, ghi tiếp vào file lịch sử.     Thêm dòng nội dung văn bản đơn giản vào file nhật ký.

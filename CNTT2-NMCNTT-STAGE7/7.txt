@@ -1,0 +1,24 @@
+Phần 1: Phân tích lỗi
+Nguyên nhân khiến file daily_critical.txt bị trống (chỉ chứa các dòng tiêu đề và số dòng bằng 2) xuất phát từ sự kết hợp giữa tham số -CaseSensitive và mẫu tìm kiếm trong lệnh Select-String:
+• Trong câu lệnh: Select-String -Path server.log -Pattern "critical" -CaseSensitive
+• Tham số -CaseSensitive buộc lệnh phải tìm kiếm khớp hoàn toàn từng ký tự chữ hoa/thường.
+• Mẫu tìm kiếm được truyền vào là chữ thường ("critical"), trong khi các dòng lỗi thực tế trong tệp server.log lại được ghi bằng chữ hoa ("CRITICAL").
+• Do không khớp được ký tự nào, lệnh không trả về dòng dữ liệu nào, dẫn đến kết quả lọc bị rỗng.
+Phần 2: Sửa lỗi và kiểm thử
+1. Đoạn script đã được sửa đúng
+Để khắc phục, bạn có thể loại bỏ hoàn toàn tham số -CaseSensitive (vì Select-String mặc định không phân biệt chữ hoa/thường) hoặc điều chỉnh lại pattern:
+# Script: deploy_checker.ps1 (Đã sửa lỗi)
+"=== Bat dau quet log: $(Get-Date) ===" | Out-File daily_critical.txt
+Select-String -Path server.log -Pattern "critical" | Out-File -Append daily_critical.txt
+"=== Hoan tat. So dong loi: ===" | Out-File -Append daily_critical.txt
+(Get-Content daily_critical.txt).Count | Out-File -Append daily_critical.txt
+2. Kết quả mong đợi của file daily_critical.txt
+Sau khi script chạy thành công với dữ liệu log mẫu, nội dung bên trong file daily_critical.txt sẽ hiển thị như sau:
+=== Bat dau quet log: 10/13/2026 16:38:00 ===
+2026-09-18 02:30:11 CRITICAL Database connection pool exhausted
+2026-09-18 02:30:45 CRITICAL Retry limit exceeded for payment-service
+=== Hoan tat. So dong loi: ===
+5
+• Cách xác nhận thành công: Mở tệp daily_critical.txt và kiểm tra thấy xuất hiện các dòng chứa từ khóa CRITICAL cùng với số lượng dòng tổng cộng chính xác ở cuối tệp.
+3. Hành vi khi file server.log không tồn tại
+Nếu tệp server.log không tồn tại trong cùng thư mục khi chạy script, lệnh Select-String sẽ phát sinh lỗi ngoại lệ (Terminating/Non-terminating Error) do không tìm thấy đường dẫn tệp. PowerShell sẽ in ra thông báo lỗi màu đỏ trên màn hình console, tiến trình đọc log bị dừng lại và nội dung các bước sau có thể không ghi nhận được đầy đủ dữ liệu chính xác.

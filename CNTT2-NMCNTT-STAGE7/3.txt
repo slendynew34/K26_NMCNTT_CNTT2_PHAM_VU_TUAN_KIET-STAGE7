@@ -1,0 +1,20 @@
+Tự động hóa Phân tích File Log
+1. Báo cáo phân tích
+Sơ đồ luồng dữ liệu (Pipeline Architecture)
+[stdout] Get-Content access.log 
+  │
+  ▼ (|)
+[stdin] Select-String -Pattern "TIMEOUT" 
+  │
+  ▼ (|)
+[stdin] Measure-Object -Line
+  │
+  ▼
+[Kết quả cuối cùng: Con số]
+• Bước 1 (Get-Content access.log): Đọc nội dung tệp log và đẩy trực tiếp từng dòng dữ liệu ra luồng chuẩn (stdout).
+• Bước 2 (Select-String): Nhận dữ liệu qua ống dẫn (stdin), thực hiện lọc và chỉ giữ lại các dòng chứa từ khóa "TIMEOUT", sau đó tiếp tục truyền tiếp qua luồng.
+• Bước 3 (Measure-Object -Line): Nhận tập hợp các dòng đã được lọc qua ống dẫn, đếm tổng số dòng và in ra kết quả duy nhất.
+2. Triển khai
+Câu lệnh PowerShell hoàn chỉnh
+Get-Content .\access.log | Select-String -Pattern "TIMEOUT" | Measure-Object -Line | Select-Object -ExpandProperty Lines
+• Cách xác nhận thành công: Terminal trả về một số nguyên duy nhất (ví dụ: 42) biểu thị tổng số lượng sự cố "TIMEOUT" xảy ra trong ngày mà không phát sinh tệp tin trung gian nào trên ổ đĩa.

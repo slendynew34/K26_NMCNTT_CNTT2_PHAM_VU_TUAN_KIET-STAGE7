@@ -1,0 +1,40 @@
+Xây dựng Công cụ Báo cáo Log Tự động
+1. Thiết kế Kiến trúc
+Tệp PowerShell Script auto_report.ps1 được chia thành 3 khối cấu trúc rõ ràng:
+   1 Khối Header & Giao diện (UI Styling): Sử dụng lệnh Write-Host kết hợp tham số -ForegroundColor để in ra tiêu đề công cụ với màu sắc bắt mắt, tạo trải nghiệm chuyên nghiệp cho người vận hành.
+   2 Khối Khởi tạo Báo cáo: Tự động lấy ngày hiện tại bằng Get-Date để tạo dòng tiêu đề mốc thời gian và ghi vào tệp báo cáo daily_report.txt.
+   3 Khối Xử lý & Nối dữ liệu (Core Logic): Đọc tệp nhật ký access.log, lọc ra các dòng chứa mã lỗi 404, và dùng cơ chế ghi nối (-Append / Add-Content) để cộng dồn vào tệp báo cáo mà không làm mất lịch sử cũ.
+2. Sản phẩm: Mã nguồn auto_report.ps1
+<#
+.SYNOPSIS
+    Script tự động hóa báo cáo lỗi hệ thống hàng ngày.
+.DESCRIPTION
+    Đọc tệp access.log, trích xuất các dòng lỗi 404 và ghi nối vào tệp daily_report.txt kèm dấu mốc thời gian.
+#>
+
+# --- 1. Giao diện trực quan (UI Styling) ---
+Write-Host "=========================================" -ForegroundColor Cyan
+Write-Host "    HE THONG TU DONG HOA BAO CAO LOG     " -ForegroundColor Yellow
+Write-Host "=========================================" -ForegroundColor Cyan
+
+# --- 2. Khởi tạo tiêu đề báo cáo với ngày tự động ---
+$ReportFile = "daily_report.txt"
+$CurrentDate = Get-Date -Format "yyyy-MM-dd"
+
+"=== LOG REPORT DATE [$CurrentDate] ===" | Out-File -FilePath $ReportFile -Append
+Write-Host "[*] Da tao tieu de bao cao cho ngay: $CurrentDate" -ForegroundColor Green
+
+# --- 3. Đọc log, lọc lỗi 404 và nối vào báo cáo ---
+$LogPath = "access.log"
+
+if (Test-Path $LogPath) {
+    Select-String -Path $LogPath -Pattern "404" | Select-Object -ExpandProperty Line | Add-Content -Path $ReportFile
+    Write-Host "[+] Trich xuat va cap nhat loi 404 thanh cong vao $ReportFile!" -ForegroundColor Green
+} else {
+    Write-Host "[!] Canh bao: Khong tim thay tep log tai duong dan $LogPath" -ForegroundColor Red
+}
+
+Write-Host "=========================================" -ForegroundColor Cyan
+Write-Host " Hoan tat qua trinh xu ly trong chop mat! " -ForegroundColor Yellow
+Write-Host "=========================================" -ForegroundColor Cyan
+• Cách xác nhận thành công: Chạy tập lệnh trong Terminal PowerShell. Giao diện sẽ hiển thị các dòng thông báo màu sắc sinh động, và tệp daily_report.txt sẽ nhận thêm dữ liệu lỗi 404 mới nhất nối tiếp ngay bên dưới mà không xóa đè dữ liệu lịch sử trước đó.
